@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYRA · Signal Terminal</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!--
+    ┌─────────────────────────────────────────────────────┐
+    │  Fonts:                                             │
+    │  · IBM Plex Mono  — all data / code / body text    │
+    │  · Bebas Neue     — large display headings          │
+    └─────────────────────────────────────────────────────┘
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════
+       SCANLINE + NOISE OVERLAYS (purely visual)
+       ══════════════════════════════════════════ -->
+  <div class="scanlines"   aria-hidden="true"></div>
+  <div class="noise"       aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════════════
+       TOP STATUS BAR
+       ══════════════════════════════════════════ -->
+  <div class="status-bar" role="banner">
+    <div class="status-left">
+      <span class="status-dot live"></span>
+      <span class="status-text">SYRA SIGNAL TERMINAL</span>
+    </div>
+    <div class="status-right">
+      <span id="clock" class="clock" aria-live="polite"></span>
+      <span class="chain-badge">◎ SOLANA</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN LAYOUT
+       ══════════════════════════════════════════ -->
+  <main class="layout">
+
+    <!-- ── LEFT PANEL: Branding + Input ─────── -->
+    <aside class="panel panel-left">
+
+      <!-- Logo / hero text -->
+      <header class="brand">
+        <div class="brand-eyebrow">AI TRADING INTELLIGENCE</div>
+        <h1 class="brand-name">SYRA</h1>
+        <p class="brand-sub">
+          Real-time on-chain signal analysis<br/>
+          powered by the Syra API
+        </p>
+      </header>
+
+      <!-- ── STEP 1: Token input form ───── -->
+      <section class="input-section" aria-label="Token analysis input">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <span>SELECT TOKEN</span>
+        </div>
+
+        <!-- Text input for the token symbol -->
+        <div class="input-group">
+          <span class="input-prefix">$</span>
+          <input
+            type="text"
+            id="tokenInput"
+            class="token-field"
+            placeholder="solana, bitcoin, bonk…"
+            autocomplete="off"
+            spellcheck="false"
+            maxlength="20"
+            aria-label="Token symbol"
+          />
+        </div>
+
+        <!-- Primary action button -->
+        <button id="analyzeBtn" class="btn-analyze" aria-label="Analyze token">
+          <span class="btn-text">▶ ANALYZE SIGNAL</span>
+          <span class="btn-loader" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+
+        <!-- Demo mode toggle -->
+        <button id="demoBtn" class="btn-demo" type="button">
+          ⬡ RUN DEMO (no API key needed)
+        </button>
+
+        <!-- Quick link to Syra Playground -->
+        <a href="https://playground.syraa.fun" target="_blank" rel="noopener noreferrer" class="btn-playground">
+          ↗ TRY SYRA PLAYGROUND
+        </a>
+      </section>
+
+      <!-- ── STEP 2: x402 Payment Panel ─── -->
+      <!--
+        This section appears ONLY when the API returns a 402 response.
+        The user pastes their payment credentials here, then the app
+        retries the request automatically with those headers.
+      -->
+      <section class="payment-section" id="paymentSection" aria-label="x402 payment" hidden>
+        <div class="section-label warning">
+          <span class="section-num">⚡</span>
+          <span>PAYMENT REQUIRED  (x402)</span>
+        </div>
+
+        <!-- Payment instructions returned by the API are injected here -->
+        <div class="payment-info" id="paymentInfo"></div>
+
+        <label class="field-label" for="sigInput">PAYMENT-SIGNATURE</label>
+        <input
+          type="text"
+          id="sigInput"
+          class="pay-field"
+          placeholder="Paste your payment signature…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Payment signature"
+        />
+
+        <label class="field-label" for="tokenPayInput">PAYMENT-TOKEN</label>
+        <input
+          type="text"
+          id="tokenPayInput"
+          class="pay-field"
+          placeholder="Paste your payment token…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Payment token"
+        />
+
+        <button id="retryBtn" class="btn-analyze" type="button">
+          <span class="btn-text">⟳ RETRY WITH PAYMENT</span>
+          <span class="btn-loader" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+      </section>
+
+      <!-- Site Links Footer -->
+      <footer class="site-links">
+        <a href="https://syraa.fun" target="_blank" rel="noopener noreferrer">syraa.fun</a>
+        <span class="link-sep">&middot;</span>
+        <a href="https://docs.syraa.fun" target="_blank" rel="noopener noreferrer">docs.syraa.fun</a>
+        <span class="link-sep">&middot;</span>
+        <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">agent</a>
+      </footer>
+
+    </aside><!-- /panel-left -->
+
+    <!-- ── RIGHT PANEL: Results ──────────────── -->
+    <section class="panel panel-right" aria-label="Analysis results">
+
+      <!-- Empty / idle state (shown before first request) -->
+      <div class="idle-state" id="idleState">
+        <div class="idle-grid" aria-hidden="true"></div>
+        <div class="idle-content">
+          <div class="idle-icon">◈</div>
+          <p class="idle-text">Awaiting token signal…</p>
+          <p class="idle-hint">Enter a token on the left and press Analyze,<br/>or run Demo mode to preview the UI.</p>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-state" id="loadingState" hidden aria-live="polite">
+        <div class="loading-bars" aria-hidden="true">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span>
+        </div>
+        <p class="loading-text">FETCHING SIGNAL<span class="ellipsis"></span></p>
+      </div>
+
+      <!-- Error state -->
+      <div class="error-state" id="errorState" hidden role="alert" aria-live="assertive">
+        <div class="error-icon">⚠</div>
+        <p class="error-title">REQUEST FAILED</p>
+        <p class="error-body" id="errorBody"></p>
+      </div>
+
+      <!-- Results state -->
+      <div class="results-state" id="resultsState" hidden>
+
+        <!-- Result header row -->
+        <div class="result-header">
+          <div class="result-token-badge" id="resultBadge">—</div>
+          <div class="result-meta">
+            <span class="result-meta-item" id="resultTime">—</span>
+            <span class="result-meta-sep">·</span>
+            <span class="result-meta-item result-network">◎ SOLANA</span>
+          </div>
+        </div>
+
+        <!--
+          Signal metrics row (optional — populated if API returns
+          structured data; falls back to text-only view)
+        -->
+        <div class="signal-metrics" id="signalMetrics" hidden>
+          <div class="metric-card" id="metricSignal">
+            <span class="metric-label">SIGNAL</span>
+            <span class="metric-value" id="mSignal">—</span>
+          </div>
+          <div class="metric-card" id="metricConfidence">
+            <span class="metric-label">CONFIDENCE</span>
+            <span class="metric-value" id="mConfidence">—</span>
+          </div>
+          <div class="metric-card" id="metricAction">
+            <span class="metric-label">ACTION</span>
+            <span class="metric-value" id="mAction">—</span>
+          </div>
+        </div>
+
+        <!-- Raw AI text response — always shown -->
+        <div class="result-body-wrap">
+          <div class="result-body-label">RAW SIGNAL OUTPUT</div>
+          <pre class="result-body" id="resultBody"></pre>
+        </div>
+
+        <!-- Footer: source attribution -->
+        <div class="result-footer">
+          <span class="result-source">Powered by <a href="https://syraa.fun" target="_blank" rel="noopener noreferrer">syraa.fun</a> · <a href="https://docs.syraa.fun" target="_blank" rel="noopener noreferrer">docs.syraa.fun</a></span>
+          <span class="result-demo-badge" id="demoBadge" hidden>DEMO</span>
+        </div>
+
+      </div><!-- /results-state -->
+
+    </section><!-- /panel-right -->
+
+  </main>
+
+  <!-- Load JS last — DOM is ready by this point -->
+  <script src="script.js"></script>
+</body>
+</html>
